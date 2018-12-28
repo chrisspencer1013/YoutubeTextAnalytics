@@ -25,6 +25,11 @@ import speech_recognition as sr
 import wave
 import re 
 import pocketsphinx
+from wit import Wit
+
+wit_access_token = "ZQBXCERPIPEZQWASLJXQDANMIZL7BOO4"
+wit_client = Wit(wit_access_token)
+
 
 #xml_data = urlopen("https://www.youtube.com/watch?v=TawI9iJIxBc&t=13704s").read()
 #with open('vid.xml', 'w') as xml:
@@ -85,13 +90,14 @@ def move_to_subfolders():
 
 def segment_wav(filename): #split up wav file into 15 minute segments in segmented subfolder
 	print(get_duration_minutes(folder_wav+filename))
-	subprocess.call("ffmpeg -i \""+folder_wav+filename+"\" -f segment -segment_time "+str(15*60)+" -c copy \""+folder_seg+filename.replace(".wav","-%03d.wav")+"\"",shell=False)
+	subprocess.call("ffmpeg -i \""+folder_wav+filename+"\" -f segment -segment_time "+str(1*60)+" -c copy \""+folder_seg+filename.replace(".wav","-%03d.wav")+"\"",shell=False)
 
 def convert_mp4_to_wav():
 	for file in os.listdir(folder_vids):
 		print("Converting MP4 to wav: "+file)
 		subprocess.call("ffmpeg -i \""+folder_vids+file+"\" -ab 160k -ac 2 -ar 44100 -vn \""+folder_wav+file.replace(".mp4",".wav")+"\"",shell=True)
 
+#not used 
 def get_duration_minutes(filename_with_path): #thanks to https://stackoverflow.com/questions/7833807/get-wav-file-length-or-duration/41617943
 	process = subprocess.Popen(['ffmpeg',  '-i', filename_with_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	stdout, stderr = process.communicate()
@@ -124,11 +130,30 @@ def convert_wav_to_txt(): #still to be tested, wav files too big
 
 
 #testing
-test_filename = "Curious Beginnings  _ Critical Role _ Campaign 2, Episode 1-byva0hOj8CU-000.wav"
-r = sr.Recognizer()
-with sr.AudioFile(folder_seg+test_filename) as test_source:
-	test_audio = r.record(test_source)
-test_sphinx = r.recognize_sphinx(test_audio)
-print(test_sphinx)
+#segment_wav("test.wav")
+#exit()
+test_filename = "test-000.wav"
+
+resp = None
+with open(folder_seg+test_filename,'rb') as wav:
+	resp = wit_client.speech(wav, None, {'Content-Type':'audio/wav'})
+print(str(resp))
+#r = sr.Recognizer()
+#with sr.AudioFile(folder_seg+test_filename) as test_source:
+#	test_audio = r.record(test_source)
+#print(r.recognize_wit(test_audio, key="ZQBXCERPIPEZQWASLJXQDANMIZL7BOO4"))
+exit()
+with open(folder_txt+"test.txt","w") as t:
+	value = ""
+	try:
+		value = r.recognize_google(test_audio)
+	except sr.RequestError as e:
+		print("Error:   "+str(e))
+	t.write(value)
+
+
+
+#test_sphinx = r.recognize_sphinx(test_audio)
+#print(test_sphinx)
 
 
