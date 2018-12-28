@@ -7,6 +7,7 @@
 	 	do some fancy text analytics
 
 	 Helpful links:
+	 	https://github.com/rg3/youtube-dl/blob/master/youtube_dl/YoutubeDL.py
 	 	https://github.com/Uberi/speech_recognition
 	 	https://github.com/Uberi/speech_recognition/blob/master/examples/audio_transcribe.py
 		https://pypi.org/project/SpeechRecognition/
@@ -20,9 +21,10 @@ from urllib.request import urlopen
 #from google.cloud import speech_v1 #this was screwy and required a virtual environment ugh
 import subprocess
 import speech_recognition as sr
-from pydub import AudioSegment
+#from pydub import AudioSegment
 import wave
 import re 
+import pocketsphinx
 
 #xml_data = urlopen("https://www.youtube.com/watch?v=TawI9iJIxBc&t=13704s").read()
 #with open('vid.xml', 'w') as xml:
@@ -31,6 +33,7 @@ import re
 folder_base = "D:/Projects/Youtube Text Analytics/"
 folder_vids = folder_base+"videos/"
 folder_wav = folder_base+"wav/"
+folder_seg = folder_wav+"segmented/"
 folder_txt = folder_base+"text/"
 
 class MyLogger(object):
@@ -80,38 +83,14 @@ def move_to_subfolders():
 	for file in [x for x in os.listdir(folder_base) if x.endswith(".wav")]:
 		os.rename(file, folder_wav+file)
 
+def segment_wav(filename): #split up wav file into 15 minute segments in segmented subfolder
+	print(get_duration_minutes(folder_wav+filename))
+	subprocess.call("ffmpeg -i \""+folder_wav+filename+"\" -f segment -segment_time "+str(15*60)+" -c copy \""+folder_seg+filename.replace(".wav","-%03d.wav")+"\"",shell=False)
+
 def convert_mp4_to_wav():
 	for file in os.listdir(folder_vids):
 		print("Converting MP4 to wav: "+file)
-		subprocess.call("G:/Programs/ffmpeg/bin/ffmpeg -i \""+folder_vids+file+"\" -ab 160k -ac 2 -ar 44100 -vn \""+folder_wav+file.replace(".mp4",".wav")+"\"",shell=True)
-
-def convert_wav_to_txt(): #still to be tested, wav files too big
-	r = sr.Recognizer()
-	for file in os.listdir(folder_wav):
-		print("Converting wav to txt: "+file)
-		segment_wav(file)
-		exit()
-		with sr.AudioFile(folder_wav+file) as source:
-			audio = r.record(source)
-		raw_sphinx = r.recognize_sphinx(audio)
-		exit()
-		with open(folder_txt+file.replace(".wav",".txt"), "w") as f:
-			for line in raw_sphinx:
-				f.write(line)
-
-#TODO: segment the wav files, they are too big as it stands lul
-
-#takes filename, splits up wav to smaller ones, returns list of filenames
-def segment_wav(filename):
-	minutes = get_duration_minutes(folder_wav+filename) 
-	print(minutes)
-
-#example from https://stackoverflow.com/questions/37999150/python-how-to-split-a-wav-file-into-multiple-wav-files:
- #t1 = t1 * 1000 #Works in milliseconds
- #t2 = t2 * 1000
- #newAudio = AudioSegment.from_wav("oldSong.wav")
- #newAudio = newAudio[t1:t2]
- #newAudio.export('newSong.wav', format="wav") #Exports to a wav file in the current path.
+		subprocess.call("ffmpeg -i \""+folder_vids+file+"\" -ab 160k -ac 2 -ar 44100 -vn \""+folder_wav+file.replace(".mp4",".wav")+"\"",shell=True)
 
 def get_duration_minutes(filename_with_path): #thanks to https://stackoverflow.com/questions/7833807/get-wav-file-length-or-duration/41617943
 	process = subprocess.Popen(['ffmpeg',  '-i', filename_with_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -120,11 +99,36 @@ def get_duration_minutes(filename_with_path): #thanks to https://stackoverflow.c
 	minutes = int(results['hours'])*60+int(results['minutes'])
 	return(minutes)
 
+def convert_wav_to_txt(): #still to be tested, wav files too big
+	r = sr.Recognizer()
+	for file in os.listdir(folder_wav):
+		print("Converting wav to txt: "+file)
+		segment_wav(file)
+		for segment in os.listdir(folder_seg):
+			with sr.AudioFile(folder_seg+segment) as source:
+				audio = r.record(source)
+			raw_sphinx = r.recognize_sphinx(audio)
+			with open(folder_txt+file.replace(".wav",".txt"), "a") as f:
+				for line in raw_sphinx:
+					f.write(line)
+			#todo delete segments when done
+
+
 
 ###"GRAPHICAL" "USER" "INTERFACE" lul
 
 #download_mp4_from_links()
 #move_to_subfolders()
 #convert_mp4_to_wav()
-convert_wav_to_txt()
+#convert_wav_to_txt()
+
+
+#testing
+test_filename = "Curious Beginnings  _ Critical Role _ Campaign 2, Episode 1-byva0hOj8CU-000.wav"
+r = sr.Recognizer()
+with sr.AudioFile(folder_seg+test_filename) as test_source:
+	test_audio = r.record(test_source)
+test_sphinx = r.recognize_sphinx(test_audio)
+print(test_sphinx)
+
 
