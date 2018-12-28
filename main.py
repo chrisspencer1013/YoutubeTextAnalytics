@@ -5,6 +5,11 @@
 	 	segment them to smaller pieces, 
 	 	convert to text,
 	 	do some fancy text analytics
+
+	 Helpful links:
+	 	https://github.com/Uberi/speech_recognition
+	 	https://github.com/Uberi/speech_recognition/blob/master/examples/audio_transcribe.py
+		https://pypi.org/project/SpeechRecognition/
 '''
 
 
