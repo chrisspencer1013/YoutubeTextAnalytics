@@ -1,3 +1,13 @@
+'''
+	This will:
+	 	download youtube vids, 
+	 	convert to wav, 
+	 	segment them to smaller pieces, 
+	 	convert to text,
+	 	do some fancy text analytics
+'''
+
+
 import youtube_dl
 import os
 from urllib.request import urlopen
@@ -62,6 +72,13 @@ def convert_wav_to_txt():
 			for line in raw_sphinx:
 				f.write(line)
 
+#TODO: segment the wav file, its too big as it stands lul
+#example from https://stackoverflow.com/questions/37999150/python-how-to-split-a-wav-file-into-multiple-wav-files:
+    #t1 = t1 * 1000 #Works in milliseconds
+    #t2 = t2 * 1000
+    #newAudio = AudioSegment.from_wav("oldSong.wav")
+    #newAudio = newAudio[t1:t2]
+    #newAudio.export('newSong.wav', format="wav") #Exports to a wav file in the current path.
 
 
 #convert_mp4_to_wav()
