@@ -38,11 +38,13 @@ import re
 #with open('vid.xml', 'w') as xml:
 #	xml.write(str(xml_data))
 
-folder_base = "D:/Projects/Youtube Text Analytics/"
+folder_base = "/home/pythondevbox/Projects/YoutubeTextAnalytics/"
 folder_vids = folder_base+"videos/"
 folder_wav = folder_base+"wav/"
 folder_seg = folder_wav+"segmented/"
 folder_txt = folder_base+"text/"
+
+
 
 
 class MyLogger(object):
@@ -54,6 +56,7 @@ class MyLogger(object):
 
     def error(self, msg):
         print(msg)
+
 
 def download_mp4_from_links():
 	args = {
@@ -93,8 +96,10 @@ def move_to_subfolders():
 		os.rename(file, folder_wav+file)
 
 def segment_wav(filename): #split up wav file into 15 minute segments in segmented subfolder
-	print(get_duration_minutes(folder_wav+filename))
-	subprocess.call("ffmpeg -i \""+folder_wav+filename+"\" -f segment -segment_time "+str(1*60)+" -c copy \""+folder_seg+filename.replace(".wav","-%03d.wav")+"\"",shell=False)
+	#print(get_duration_minutes(folder_wav+filename))
+	call = "ffmpeg -i "+folder_wav+filename+" -f segment -segment_time "+str(1*60)+" -c copy "+folder_seg+filename.replace(".wav","-%03d.wav")
+	print(call)
+	subprocess.call(call,shell=False)
 
 def convert_mp4_to_wav():
 	for file in os.listdir(folder_vids):
@@ -130,15 +135,22 @@ def convert_wav_to_txt(): #still to be tested, wav files too big
 #download_mp4_from_links()
 #move_to_subfolders()
 #convert_mp4_to_wav()
-#convert_wav_to_txt()
+
 #segment_wav("test.wav")
 
+#convert_wav_to_txt()
 
 
 
+r = sr.Recognizer()
 test_filename = "test-000.wav"
-
-
+with sr.AudioFile(folder_seg+test_filename) as source:
+	audio = r.record(source)
+raw_sphinx = r.recognize_sphinx(audio)
+with open(folder_txt+"test-000.txt", "a") as f:
+	for line in raw_sphinx:
+		f.write(line)
+exit()
 
 #errored out in c file
 #model_path = get_model_path()
