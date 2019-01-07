@@ -24,11 +24,14 @@ import speech_recognition as sr
 #from pydub import AudioSegment
 import wave
 import re 
-import pocketsphinx
-from wit import Wit
 
-wit_access_token = "ZQBXCERPIPEZQWASLJXQDANMIZL7BOO4"
-wit_client = Wit(wit_access_token)
+#import pocketsphinx
+#from pocketsphinx import AudioFile
+#from pocketsphinx import get_model_path
+
+#from wit import Wit
+#wit_access_token = "ZQBXCERPIPEZQWASLJXQDANMIZL7BOO4"
+#wit_client = Wit(wit_access_token)
 
 
 #xml_data = urlopen("https://www.youtube.com/watch?v=TawI9iJIxBc&t=13704s").read()
@@ -40,6 +43,7 @@ folder_vids = folder_base+"videos/"
 folder_wav = folder_base+"wav/"
 folder_seg = folder_wav+"segmented/"
 folder_txt = folder_base+"text/"
+
 
 class MyLogger(object):
     def debug(self, msg):
@@ -127,12 +131,25 @@ def convert_wav_to_txt(): #still to be tested, wav files too big
 #move_to_subfolders()
 #convert_mp4_to_wav()
 #convert_wav_to_txt()
-
-
-#testing
 #segment_wav("test.wav")
-#exit()
+
+
+
+
 test_filename = "test-000.wav"
+
+
+
+#errored out in c file
+#model_path = get_model_path()
+#decoder = pocketsphinx.Decoder(pocketsphinx.Decoder.default_config())
+#wavFile = file(folder_seg+test_filename,'rb')
+#wavFile.seek(44)
+#decoder.decode_raw(wavFile)
+#results = decoder.get_hyp()
+#print(results)
+
+exit()
 
 resp = None
 with open(folder_seg+test_filename,'rb') as wav:
