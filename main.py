@@ -1,5 +1,13 @@
 '''
-	This will:
+	From fresh ubuntu install do the following:
+		sudo apt-get install python3 python3-all-dev build-essential swig git libpulse-dev
+		sudo apt-get install libasound2-dev #solves error on build for pocketsphinx
+		sudo apt-get install ffmpeg #for conversion, segmentation
+		pip3 install youtube_dl
+		pip3 install SpeechRecognition
+		pip3 install pocketsphinx #might need to use an update statement instead
+
+	This script will:
 	 	download youtube vids, 
 	 	convert to wav, 
 	 	segment them to smaller pieces, 
@@ -88,7 +96,7 @@ def download_mp4_from_links():
 	#			youtube.download([link])
 	#exit()
 
-#move to subfolder for ease of use
+#move to subfolder for ease of use/organization
 def move_to_subfolders():
 	for file in [x for x in os.listdir(folder_base) if x.endswith(".mp4")]:
 		os.rename(file, folder_vids+file)
@@ -97,7 +105,7 @@ def move_to_subfolders():
 
 def segment_wav(filename): #split up wav file into 15 minute segments in segmented subfolder
 	#print(get_duration_minutes(folder_wav+filename))
-	call = "ffmpeg -i "+folder_wav+filename+" -f segment -segment_time "+str(1*60)+" -c copy "+folder_seg+filename.replace(".wav","-%03d.wav")
+	call = "ffmpeg -i '"+folder_wav+filename+"' -f segment -segment_time "+str(1*60)+" -c copy '"+folder_seg+filename.replace(".wav","-%03d.wav")+"'"
 	print(call)
 	subprocess.call(call,shell=False)
 
@@ -136,7 +144,7 @@ def convert_wav_to_txt(): #still to be tested, wav files too big
 #move_to_subfolders()
 #convert_mp4_to_wav()
 
-#segment_wav("test.wav")
+#segment_wav("test.wav") #review this, it wasnt workin
 
 #convert_wav_to_txt()
 
