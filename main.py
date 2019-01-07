@@ -19,6 +19,7 @@
 	 	https://github.com/Uberi/speech_recognition
 	 	https://github.com/Uberi/speech_recognition/blob/master/examples/audio_transcribe.py
 		https://pypi.org/project/SpeechRecognition/
+		https://github.com/rg3/youtube-dl/blob/master/README.md#output-template
 '''
 
 
@@ -53,8 +54,6 @@ folder_seg = folder_wav+"segmented/"
 folder_txt = folder_base+"text/"
 
 
-
-
 class MyLogger(object):
     def debug(self, msg):
         pass
@@ -67,16 +66,19 @@ class MyLogger(object):
 
 
 def download_mp4_from_links():
-	args = {
-		'verbose':True,
-		'logger':MyLogger(),
-		'subtitleslangs':'en',
-		'skip_download':False
-	}
+
 	#download everything in links file
 	with open('links.txt','r') as links:
-		for link in links:
-			print("Downloading: "+link)
+		for i, link in enumerate(links):
+			print("Downloading video number {num}: {vid}".format(num=str(i+1),vid=link))
+			args = {
+				'verbose':True,
+				'logger':MyLogger(),
+				'subtitleslangs':'en',
+				'skip_download':False,
+				'format':'mp4',
+				'outtmpl':'./videos/CriticalRole_S2E{}.%(ext)s'.format(str(i+1)) #sloppy, but it will work (episode number wasn't populated)
+			}
 			with youtube_dl.YoutubeDL(args) as youtube:
 				youtube.download([link])
 
@@ -140,14 +142,14 @@ def convert_wav_to_txt(): #still to be tested, wav files too big
 
 ###"GRAPHICAL" "USER" "INTERFACE" lul
 
-#download_mp4_from_links()
+download_mp4_from_links()
 #move_to_subfolders()
 #convert_mp4_to_wav()
 
 #segment_wav("test.wav") #review this, it wasnt workin
 
 #convert_wav_to_txt()
-
+exit()
 
 
 r = sr.Recognizer()
