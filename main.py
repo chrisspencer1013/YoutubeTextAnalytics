@@ -29,6 +29,7 @@
 		->youtube-dl: download as wav (filetype not available)
 		->free wit translation - always seemed to time out, might have bad token
 		->pocketsphinx not through speech_recognition gives error in c stuff
+		->episode number was not populated from youtube-dl, hence the rename
 '''
 
 
@@ -69,66 +70,69 @@ def download_mp4_from_links(cleanup=0):
 	#download everything in links file
 	with open('links.txt','r') as links:
 		for i, link in enumerate(links):
-			print("Downloading video number {num}: {vid}".format(num=str(i+1),vid=link))
+			print("Downloading video: {vid}".format(vid=link))
 			args = {
 				'verbose':True,
 				'logger':MyLogger(),
 				'subtitleslangs':'en',
 				'skip_download':False,
 				'format':'mp4',
-				'outtmpl':'./videos/CriticalRole_S2E{}.%(ext)s'.format(str(i+1)) #sloppy, but it will work (episode number wasn't populated)
+				'outtmpl':'./videos/%(title)s-%(id)s.%(ext)s'
 			}
 			with youtube_dl.YoutubeDL(args) as youtube:
 				youtube.download([link])
 
 
-def segment_wav(filename,cleanup=0): #split up wav file into 15 minute segments in segmented subfolder
-	call = "ffmpeg -i '"+folder_wav+filename+"' -f segment -segment_time "+str(1*60)+" -c copy '"+folder_seg+filename.replace(".wav","-%03d.wav")+"'"
+def segment_wav(full_filename): #split up wav file into 15 minute segments in segmented subfolder
+	call = "ffmpeg -i \"" + full_filename + "\" -f segment -segment_time " + str(1*60) + " -c copy \"" + folder_seg+os.path.basename(full_filename).replace(".wav","-%03d.wav")+"\""
 	print(call)
-	subprocess.call(call,shell=False)
+	subprocess.call(call,shell=True)
+
 
 def convert_mp4_to_wav(cleanup=0):
 	for file in os.listdir(folder_vids):
-		print("Converting MP4 to wav: "+file)
-		subprocess.call("ffmpeg -i \""+folder_vids+file+"\" -ab 160k -ac 2 -ar 44100 -vn \""+folder_wav+file.replace(".mp4",".wav")+"\"",shell=True)
+		print("Converting MP4 to wav: " + file)
+		subprocess.call("ffmpeg -i \"" + folder_vids+file + "\" -ab 160k -ac 2 -ar 44100 -vn \"" + folder_wav + file.replace(".mp4", ".wav") + "\"",shell=True)
 
 def convert_wav_to_txt(cleanup=0): #still to be tested, wav files too big
 	r = sr.Recognizer()
 	for file in os.listdir(folder_wav):
 		print("Converting wav to txt: "+file)
-		segment_wav(file)
+		segment_wav(folder_wav + file, cleanup)
 		for segment in os.listdir(folder_seg):
 			with sr.AudioFile(folder_seg+segment) as source:
 				audio = r.record(source)
 			raw_sphinx = r.recognize_sphinx(audio)
-			with open(folder_txt+file.replace(".wav",".txt"), "a") as f:
+			with open(folder_txt+file.replace(".wav", ".txt"), "a") as f:
 				for line in raw_sphinx:
 					f.write(line)
 			#todo delete segments when done
 			
-def renamer(): #untested
+def renamer():
     for file in [x for x in os.listdir(folder_vids) if x.endswith(".mp4")]:
-        os.rename(file, "CriticalRole_S2E{}.mp4".format(re.search(r"Episode\s{1}(?P<e>\d+)", file, re.DOTALL)['e']))
+        os.rename(folder_vids + file, folder_vids + "CriticalRole_S2E{}.mp4".format(re.search(r"Episode\s{1}(?P<e>\d+)", file, re.DOTALL)['e']))
 
 
 ###"GRAPHICAL" "USER" "INTERFACE" lul
 
-download_mp4_from_links()
-renamer()
+#download_mp4_from_links()
+#print("done downloadin, press something for rename test")
+#input()
+#renamer()
 #convert_mp4_to_wav()
 
-#segment_wav("test.wav") #review this, it wasnt workin
+#segment_wav(folder_wav + "CriticalRole_S2E1.wav") 
 
 #convert_wav_to_txt()
-exit()
+#exit()
 
 
 r = sr.Recognizer()
-test_filename = "test-000.wav"
+test_filename = "CriticalRole_S2E1-000.wav"
 with sr.AudioFile(folder_seg+test_filename) as source:
 	audio = r.record(source)
 raw_sphinx = r.recognize_sphinx(audio)
-with open(folder_txt+"test-000.txt", "a") as f:
+with open(folder_txt+"CriticalRole_S2E1-000.txt", "a") as f:
 	for line in raw_sphinx:
 		f.write(line)
 exit()
