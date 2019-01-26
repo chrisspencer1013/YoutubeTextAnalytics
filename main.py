@@ -53,15 +53,21 @@ from pocketsphinx import get_model_path
 from pocketsphinx import get_data_path
 
 folder_base = "/home/chris/Projects/YoutubeTextAnalytics/"
-folder_vids = folder_base+"videos/"
-folder_wav = folder_base+"wav/"
-folder_seg = folder_wav+"segmented/"
-folder_txt = folder_base+"text/"
+folder_vids = folder_base + "videos/"
+folder_wav = folder_base + "wav/"
+folder_seg = folder_wav + "segmented/"
+folder_txt = folder_base + "text/"
+folder_analysis = folder_base + "analysis/"
 
 pathlib.Path(folder_vids).mkdir(exist_ok=True) 
 pathlib.Path(folder_wav).mkdir(exist_ok=True) 
 pathlib.Path(folder_seg).mkdir(exist_ok=True) 
 pathlib.Path(folder_txt).mkdir(exist_ok=True) 
+
+
+def logger(line):
+    with open('oof.log','a') as log:
+        log.write('{}: {}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), line))
 
 
 class MyLogger(object):
@@ -81,7 +87,7 @@ def download_mp4_from_links(cleanup=0):
     #download everything in links file
     with open('links.txt','r') as links:
         for i, link in enumerate(links):
-            print("Downloading video: {vid}".format(vid=link))
+            logger("Downloading video: {vid}".format(vid=link))
             args = {
                 'verbose':True,
                 'logger':MyLogger(),
@@ -96,30 +102,54 @@ def download_mp4_from_links(cleanup=0):
 
 def segment_wav(full_filename): #split up wav file into 15 minute segments in segmented subfolder
     call = "ffmpeg -i \"" + full_filename + "\" -f segment -segment_time " + str(1*60) + " -c copy \"" + folder_seg+os.path.basename(full_filename).replace(".wav","-%03d.wav")+"\""
-    print(colored('Segmenting wav file: '+full_filename, 'green'))
-    #print(call)
+    temp = 'Segmenting wav file: '+full_filename
+    print(colored(temp, 'green'))
+    logger(temp)
     subprocess.call(call,shell=True)
 
 
 def convert_mp4_to_wav(cleanup=0):
     for file in os.listdir(folder_vids):
-        print("Converting MP4 to wav: " + file)
+        logger("Converting MP4 to wav: " + file)
         subprocess.call("ffmpeg -i \"" + folder_vids+file + "\" -ab 160k -ac 1 -ar 16000 -vn \"" + folder_wav + file.replace(".mp4", ".wav") + "\"",shell=True)
+        if cleanup:
+            os.remove(folder_vids+file)
 
-def convert_wav_to_txt(cleanup=0): #still to be tested, wav files too big
-    r = sr.Recognizer()
+def convert_wav_to_txt(cleanup=0): 
+
+    model_path = get_model_path()
+    data_path = get_data_path()
+
     for file in os.listdir(folder_wav):
+
         print("Converting wav to txt: "+file)
-        segment_wav(folder_wav + file, cleanup)
+        segment_wav(folder_wav + file)
         for segment in os.listdir(folder_seg):
-            with sr.AudioFile(folder_seg+segment) as source:
-                audio = r.record(source)
-            raw_sphinx = r.recognize_sphinx(audio)
-            with open(folder_txt+file.replace(".wav", ".txt"), "a") as f:
-                for line in raw_sphinx:
+            config = {
+                'verbose' : False,
+                'audio_file' : os.path.join(folder_seg, segment),
+                'buffer_size' : 2048,
+                'hmm' : os.path.join('/home/chris/Projects/LanguageModels/wsj_all_sc.cd_semi_5000',''), #acoustic model
+                #'hmm' : os.path.join(model_path, 'en-us'), #acoustic model
+                'lm' : os.path.join(model_path, 'en-us.lm.bin'), #language model
+                'dict' : os.path.join(model_path,'cmudict-en-us.dict')
+            }
+            audio = AudioFile(**config)
+            with open(folder_txt+file.replace(".wav", ".txt"), "w") as f:
+                for line in audio:
                     f.write(line)
-            #todo delete segments when done
-            
+
+        merge_text_files()
+
+
+    
+
+def merge_text_files():
+    for text_file in os.listdir(folder_txt):
+        with open(folder_txt+text_file, 'r') as text, open(folder_analysis + text_file.split("-")[0]+".txt", 'a') as cumulative:
+            for line in text:
+                cumulative.write(line)
+ 
 def renamer():
     print(colored('Renaming mp4s', 'green', attrs=['reverse']))
     for file in [x for x in os.listdir(folder_vids) if x.endswith(".mp4")]:
@@ -129,7 +159,7 @@ def renamer():
             print(colored('Error renaming based on regex pattern', 'red', attrs=['reverse']))
             print(colored("\t"+str(e)+"\n",'red'))
 
-def test_wav_to_txt(): #just so i can call it like the other steps (temp)
+def test_wav_to_txt(): #not as flexible, going with just sphinx
     r = sr.Recognizer()
     test_filename = "CriticalRole_S2E1-000.wav"
     with sr.AudioFile(folder_seg+test_filename) as source:
@@ -167,5 +197,6 @@ def test_puresphinx():
 #segment_wav(folder_wav + "CriticalRole_S2E1.wav") 
 
 #convert_wav_to_txt()
-#test_wav_to_txt()
-test_puresphinx()
+
+#test_puresphinx()
+
