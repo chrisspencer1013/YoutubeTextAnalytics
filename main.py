@@ -46,7 +46,7 @@ import speech_recognition as sr
 import wave
 import re 
 import pathlib
-
+from datetime import datetime
 #import pocketsphinx
 from pocketsphinx import AudioFile
 from pocketsphinx import get_model_path
@@ -63,11 +63,11 @@ pathlib.Path(folder_vids).mkdir(exist_ok=True)
 pathlib.Path(folder_wav).mkdir(exist_ok=True) 
 pathlib.Path(folder_seg).mkdir(exist_ok=True) 
 pathlib.Path(folder_txt).mkdir(exist_ok=True) 
-
+pathlib.Path(folder_analysis).mkdir(exist_ok=True) 
 
 def logger(line):
     with open('oof.log','a') as log:
-        log.write('{}: {}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), line))
+        log.write('{}: {}\n'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), line))
 
 
 class MyLogger(object):
@@ -100,7 +100,7 @@ def download_mp4_from_links(cleanup=0):
                 youtube.download([link])
 
 
-def segment_wav(full_filename): #split up wav file into 15 minute segments in segmented subfolder
+def segment_wav(full_filename): #split up wav file into segments in segmented subfolder
     call = "ffmpeg -i \"" + full_filename + "\" -f segment -segment_time " + str(1*60) + " -c copy \"" + folder_seg+os.path.basename(full_filename).replace(".wav","-%03d.wav")+"\""
     temp = 'Segmenting wav file: '+full_filename
     print(colored(temp, 'green'))
@@ -115,16 +115,22 @@ def convert_mp4_to_wav(cleanup=0):
         if cleanup:
             os.remove(folder_vids+file)
 
+
 def convert_wav_to_txt(cleanup=0): 
 
     model_path = get_model_path()
     data_path = get_data_path()
 
-    for file in os.listdir(folder_wav):
+    for file in os.listdir(folder_wav): #todo list propegation for only non folders
 
-        print("Converting wav to txt: "+file)
         segment_wav(folder_wav + file)
+
+        segments_to_process = []
         for segment in os.listdir(folder_seg):
+            segments_to_process.append(segment) #done because list dir isnt ordered
+
+        for segment in sorted(segments_to_process):
+            logger("Converting wav to txt: "+segment)
             config = {
                 'verbose' : False,
                 'audio_file' : os.path.join(folder_seg, segment),
@@ -136,19 +142,21 @@ def convert_wav_to_txt(cleanup=0):
             }
             audio = AudioFile(**config)
             with open(folder_txt+file.replace(".wav", ".txt"), "w") as f:
-                for line in audio:
-                    f.write(line)
+                for phrase in audio:
+                    f.write(str(phrase))
 
-        merge_text_files()
+        merge_text_files(cleanup)
 
 
-    
 
-def merge_text_files():
+
+def merge_text_files(cleanup=0):
     for text_file in os.listdir(folder_txt):
         with open(folder_txt+text_file, 'r') as text, open(folder_analysis + text_file.split("-")[0]+".txt", 'a') as cumulative:
             for line in text:
                 cumulative.write(line)
+        if cleanup:
+            os.remove(folder_txt+text_file)
  
 def renamer():
     print(colored('Renaming mp4s', 'green', attrs=['reverse']))
@@ -158,6 +166,7 @@ def renamer():
         except TypeError as e:
             print(colored('Error renaming based on regex pattern', 'red', attrs=['reverse']))
             print(colored("\t"+str(e)+"\n",'red'))
+            logger(e)
 
 def test_wav_to_txt(): #not as flexible, going with just sphinx
     r = sr.Recognizer()
@@ -184,7 +193,7 @@ def test_puresphinx():
     }
     audio = AudioFile(**config)
     for phrase in audio:
-        print(phrase)
+        logger(phrase)
     
 
 
@@ -194,9 +203,11 @@ def test_puresphinx():
 #download_mp4_from_links()
 #renamer()
 #convert_mp4_to_wav()
-#segment_wav(folder_wav + "CriticalRole_S2E1.wav") 
-
 #convert_wav_to_txt()
 
-#test_puresphinx()
+
+
+
+#segment_wav(folder_wav + "CriticalRole_S2E1.wav") 
+test_puresphinx()
 
